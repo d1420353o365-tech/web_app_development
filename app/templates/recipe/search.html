@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card glass-card border-0 shadow-sm rounded-4 sticky-top" style="top: 80px; z-index: 1;">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-3">🔍 食材組合篩選</h4>
+                <p class="text-muted small">勾選您手邊擁有的食材，我們會找出同時包含這些食材的食譜。</p>
+                
+                <form action="{{ url_for('recipe.ingredient_search') }}" method="GET">
+                    <div class="row g-2 mb-4" style="max-height: 400px; overflow-y: auto;">
+                        {% for ing in all_ingredients %}
+                        <div class="col-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="ingredients" value="{{ ing.name }}" id="ing_{{ ing.id }}" {% if ing.name in selected %}checked{% endif %}>
+                                <label class="form-check-label user-select-none w-100 cursor-pointer" for="ing_{{ ing.id }}">
+                                    {{ ing.name }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold rounded-3">搜尋食譜</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        {% if selected %}
+            <h4 class="fw-bold mb-4">符合您食材的食譜 ({{ results|length }} 筆)</h4>
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                <span class="text-muted mt-1">您選了：</span>
+                {% for s in selected %}
+                    <span class="badge bg-secondary">{{ s }}</span>
+                {% endfor %}
+            </div>
+            
+            <div class="row row-cols-1 row-cols-md-2 g-4">
+                {% for recipe in results %}
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 text-decoration-none text-dark transition-hover" onclick="location.href='{{ url_for('recipe.detail', id=recipe.id) }}'" style="cursor:pointer;">
+                        {% if recipe.cover_image %}
+                            <img src="{{ recipe.cover_image }}" class="card-img-top rounded-top-4" style="height: 180px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-light rounded-top-4 d-flex align-items-center justify-content-center text-muted" style="height: 180px; font-size: 2.5rem;">🍳</div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-truncate">{{ recipe.title }}</h5>
+                            <small class="text-muted">⏱️ {{ recipe.cook_time_minutes ~ ' 分鐘' if recipe.cook_time_minutes else '未標示時間' }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-5">
+                    <h5 class="text-muted">找不到同時包含這些食材的食譜 🥲</h5>
+                    <p class="text-muted">嘗試減少勾選的食材項目，可以找到更多配方。</p>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5 mt-5">
+                <div style="font-size: 4rem;">🥗</div>
+                <h3 class="fw-bold mt-3">請在左側勾選您的食材</h3>
+                <p class="text-muted">系統將推薦適合您的料理配方</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

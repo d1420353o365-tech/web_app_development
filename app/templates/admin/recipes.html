@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold m-0"><a href="{{ url_for('admin.dashboard') }}" class="text-decoration-none text-muted">🛡️ 管理後台</a> / 食譜管理</h2>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <table class="table mb-0 table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>食譜名稱</th>
+                <th>作者</th>
+                <th>狀態</th>
+                <th>收藏數</th>
+                <th>建立時間</th>
+                <th class="text-end">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in recipes %}
+            <tr>
+                <td>{{ r.id }}</td>
+                <td class="fw-bold">{{ r.title }}</td>
+                <td>{{ r.author }}</td>
+                <td>
+                    {% if r.is_public %}
+                        <span class="badge bg-success">公開</span>
+                    {% else %}
+                        <span class="badge bg-secondary">私人</span>
+                    {% endif %}
+                </td>
+                <td>{{ r.favorites_count or 0 }}</td>
+                <td>{{ r.created_at[:10] }}</td>
+                <td class="text-end">
+                    <a href="{{ url_for('recipe.detail', id=r.id) }}" class="btn btn-sm btn-primary">查看</a>
+                    <a href="{{ url_for('recipe.edit_recipe_page', id=r.id) }}" class="btn btn-sm btn-success">編輯</a>
+                    <form action="{{ url_for('admin.delete_recipe', id=r.id) }}" method="POST" class="d-inline" onsubmit="return confirm('確定這篇食譜違反規定要強制移除嗎？');">
+                        <button type="submit" class="btn btn-sm btn-danger fw-bold">移除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

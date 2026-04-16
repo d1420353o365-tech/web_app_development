@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card glass-card border-0 rounded-4 mt-4">
+            <div class="card-body p-5">
+                <h2 class="text-center fw-bold mb-4">建立專屬帳號 🚀</h2>
+                <form action="{{ url_for('auth.register') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label text-muted fw-bold">顯示名稱</label>
+                        <input type="text" class="form-control form-control-lg bg-light" id="username" name="username" required autofocus placeholder="例如：食譜大師">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label text-muted fw-bold">電子郵件</label>
+                        <input type="email" class="form-control form-control-lg bg-light" id="email" name="email" required placeholder="name@example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label text-muted fw-bold">密碼</label>
+                        <input type="password" class="form-control form-control-lg bg-light" id="password" name="password" required placeholder="至少 8 個字元">
+                    </div>
+                    <div class="mb-4">
+                        <label for="password_confirm" class="form-label text-muted fw-bold">確認密碼</label>
+                        <input type="password" class="form-control form-control-lg bg-light" id="password_confirm" name="password_confirm" required placeholder="再次輸入密碼">
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg fw-bold rounded-3 shadow-sm">註冊</button>
+                    </div>
+                </form>
+                <div class="text-center mt-4 text-muted">
+                    已經有帳號了？ <a href="{{ url_for('auth.login_page') }}" class="text-decoration-none fw-bold">馬上登入</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

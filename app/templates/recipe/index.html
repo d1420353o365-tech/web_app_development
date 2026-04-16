@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 mt-2">
+    <h2 class="fw-bold m-0">探索食譜 🌟</h2>
+    {% if session.get('user_id') %}
+        <a href="{{ url_for('recipe.add_recipe_page') }}" class="btn btn-primary shadow-sm fw-bold">📝 新增食譜</a>
+    {% endif %}
+</div>
+
+<!-- 搜尋列 -->
+<div class="card glass-card border-0 mb-5 shadow-sm rounded-4">
+    <div class="card-body p-4">
+        <form action="{{ url_for('recipe.index') }}" method="GET" class="d-flex w-100">
+            <input type="text" name="q" class="form-control form-control-lg me-2" placeholder="輸入食譜關鍵字..." value="{{ query }}">
+            <button type="submit" class="btn btn-dark btn-lg px-4 fw-bold">搜尋</button>
+        </form>
+    </div>
+</div>
+
+{% if query %}
+    <h4 class="mb-4">「{{ query }}」的搜尋結果 ({{ recipes|length }} 筆)</h4>
+{% endif %}
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for recipe in recipes %}
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm rounded-4 text-decoration-none text-dark transition-hover" onclick="location.href='{{ url_for('recipe.detail', id=recipe.id) }}'" style="cursor:pointer;">
+            {% if recipe.cover_image %}
+                <img src="{{ recipe.cover_image }}" class="card-img-top rounded-top-4" alt="{{ recipe.title }}" style="height: 200px; object-fit: cover;">
+            {% else %}
+                <div class="bg-light rounded-top-4 d-flex align-items-center justify-content-center text-muted" style="height: 200px; font-size: 3rem;">
+                    🍳
+                </div>
+            {% endif %}
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-truncate">{{ recipe.title }}</h5>
+                <p class="card-text text-muted small text-truncate">{{ recipe.description or '無詳細說明' }}</p>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <span class="badge bg-{{ 'success' if recipe.difficulty == 'easy' else 'warning' if recipe.difficulty == 'medium' else 'danger' if recipe.difficulty == 'hard' else 'secondary' }}">
+                        {{ recipe.difficulty or '未標示難度' }}
+                    </span>
+                    <small class="text-muted">⏱️ {{ recipe.cook_time_minutes ~ ' 分鐘' if recipe.cook_time_minutes else '未標示時間' }}</small>
+                </div>
+            </div>
+            <div class="card-footer bg-white border-0 rounded-bottom-4 text-muted small">
+                ✍️ 由 <span class="fw-bold">{{ recipe.author }}</span> 分享
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <h3 class="text-muted">找不到相符的食譜 🥲</h3>
+        <p class="text-muted">試試看其他關鍵字，或是自己來新增一篇吧！</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

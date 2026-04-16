@@ -10,6 +10,7 @@ app/routes/auth.py
   POST /auth/logout     — 清除 Session，登出使用者
 """
 
+from functools import wraps
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 
 from app.models.user import User
@@ -18,110 +19,98 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
 # ---------------------------------------------------------------------------
-# 輔助：登入狀態檢查裝飾器（在 implementation 階段實作）
+# 輔助：登入狀態檢查裝飾器
 # ---------------------------------------------------------------------------
 
 def login_required(f):
     """裝飾器：確保使用者已登入，否則重導向登入頁。"""
-    pass
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            flash("請先登入", "warning")
+            return redirect(url_for("auth.login_page"))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 # ---------------------------------------------------------------------------
-# 路由骨架
+# 路由實作
 # ---------------------------------------------------------------------------
 
 @auth_bp.route("/login", methods=["GET"])
 def login_page():
-    """
-    顯示登入表單頁面。
-
-    GET /auth/login
-
-    處理邏輯（待實作）：
-    - 若 session 中已有 user_id，重導向首頁（避免重複登入）
-    - 渲染 auth/login.html
-
-    輸出：
-    - 渲染模板 auth/login.html
-    """
-    pass
+    """顯示登入表單頁面。"""
+    if "user_id" in session:
+        return redirect(url_for("recipe.index"))
+    return render_template("auth/login.html")
 
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    """
-    處理使用者登入請求。
+    """處理使用者登入請求。"""
+    email = request.form.get("email", "").strip()
+    password = request.form.get("password", "")
 
-    POST /auth/login
-    表單欄位: email, password
+    if not email or not password:
+        flash("請輸入電子郵件與密碼", "danger")
+        return render_template("auth/login.html")
 
-    處理邏輯（待實作）：
-    1. 驗證 email 與 password 不為空
-    2. User.get_by_email(email) 查詢帳號
-    3. User.verify_password(hash, password) 驗證密碼
-    4. 成功：將 user_id, username, is_admin 存入 session；重導向首頁
-    5. 失敗：flash("帳號或密碼錯誤")；重新渲染登入表單
-
-    輸出：
-    - 成功 → redirect(url_for("recipe.index"))
-    - 失敗 → 重新渲染 auth/login.html
-    """
-    pass
+    user = User.get_by_email(email)
+    if user and User.verify_password(user["password_hash"], password):
+        session["user_id"] = user["id"]
+        session["username"] = user["username"]
+        session["is_admin"] = bool(user["is_admin"])
+        flash("登入成功！", "success")
+        return redirect(url_for("recipe.index"))
+    else:
+        flash("帳號或密碼錯誤", "danger")
+        return render_template("auth/login.html")
 
 
 @auth_bp.route("/register", methods=["GET"])
 def register_page():
-    """
-    顯示使用者註冊表單頁面。
-
-    GET /auth/register
-
-    處理邏輯（待實作）：
-    - 若已登入，重導向首頁
-    - 渲染 auth/register.html
-
-    輸出：
-    - 渲染模板 auth/register.html
-    """
-    pass
+    """顯示使用者註冊表單頁面。"""
+    if "user_id" in session:
+        return redirect(url_for("recipe.index"))
+    return render_template("auth/register.html")
 
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    """
-    處理使用者註冊請求。
+    """處理使用者註冊請求。"""
+    username = request.form.get("username", "").strip()
+    email = request.form.get("email", "").strip()
+    password = request.form.get("password", "")
+    password_confirm = request.form.get("password_confirm", "")
 
-    POST /auth/register
-    表單欄位: username, email, password, password_confirm
+    if not username or not email or not password or not password_confirm:
+        flash("請填寫所有必填欄位", "danger")
+        return render_template("auth/register.html")
 
-    處理邏輯（待實作）：
-    1. 驗證所有欄位不為空
-    2. 確認 password == password_confirm
-    3. User.get_by_email(email) 確認 email 尚未被使用
-    4. User.create(username, email, password) 建立帳號
-    5. 成功：flash("註冊成功，請登入")；重導向登入頁
-    6. 失敗：flash(對應錯誤訊息)；重新渲染表單
+    if password != password_confirm:
+        flash("兩次密碼輸入不一致", "danger")
+        return render_template("auth/register.html")
 
-    輸出：
-    - 成功 → redirect(url_for("auth.login_page"))
-    - 失敗 → 重新渲染 auth/register.html
-    """
-    pass
+    if User.get_by_email(email):
+        flash("此電子郵件已被註冊", "danger")
+        return render_template("auth/register.html")
+
+    if User.get_by_username(username):
+        flash("此使用者名稱已被使用", "danger")
+        return render_template("auth/register.html")
+
+    user_id = User.create(username, email, password)
+    if user_id:
+        flash("註冊成功，請登入", "success")
+        return redirect(url_for("auth.login_page"))
+    else:
+        flash("註冊發生錯誤，請稍後再試", "danger")
+        return render_template("auth/register.html")
 
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
-    """
-    處理使用者登出請求。
-
-    POST /auth/logout
-
-    處理邏輯（待實作）：
-    1. session.clear() 清除所有 Session 資料
-    2. flash("已成功登出")
-    3. 重導向首頁
-
-    輸出：
-    - redirect(url_for("recipe.index"))
-    """
-    pass
+    """處理使用者登出請求。"""
+    session.clear()
+    flash("已成功登出", "success")
+    return redirect(url_for("recipe.index"))

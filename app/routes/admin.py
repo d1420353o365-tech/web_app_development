@@ -12,6 +12,7 @@ app/routes/admin.py
 """
 
 from flask import Blueprint, render_template, redirect, url_for, session, flash, abort
+from functools import wraps
 
 from app.models.user import User
 from app.models.recipe import Recipe
@@ -20,110 +21,78 @@ admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
 # ---------------------------------------------------------------------------
-# 輔助：管理員權限檢查（在 implementation 階段實作）
+# 輔助：管理員權限檢查
 # ---------------------------------------------------------------------------
 
 def admin_required(f):
     """裝飾器：確認使用者具有管理員身份，否則 abort(403)。"""
-    pass
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("is_admin"):
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 # ---------------------------------------------------------------------------
-# 路由骨架
+# 路由實作
 # ---------------------------------------------------------------------------
 
 @admin_bp.route("/", methods=["GET"])
+@admin_required
 def dashboard():
-    """
-    管理後台總覽面板。（需管理員）
-
-    GET /admin/
-
-    處理邏輯（待實作）：
-    1. 確認 session["is_admin"] == True，否則 abort(403)
-    2. User.get_all() 取得使用者列表，計算總數
-    3. Recipe.get_all(public_only=False) 取得所有食譜，計算總數
-    4. 取最新 5 筆食譜作為 recent_recipes
-
-    輸出：
-    - 渲染模板 admin/dashboard.html
-      context: user_count, recipe_count, recent_recipes
-    """
-    pass
+    """管理後台總覽面板。"""
+    users = User.get_all()
+    all_recipes = Recipe.get_all(public_only=False)
+    
+    user_count = len(users)
+    recipe_count = len(all_recipes)
+    recent_recipes = all_recipes[:5]
+    
+    return render_template("admin/dashboard.html", user_count=user_count, recipe_count=recipe_count, recent_recipes=recent_recipes)
 
 
 @admin_bp.route("/users", methods=["GET"])
+@admin_required
 def list_users():
-    """
-    使用者管理列表頁面。（需管理員）
-
-    GET /admin/users
-
-    處理邏輯（待實作）：
-    1. 確認管理員身份，否則 abort(403)
-    2. User.get_all() 取得所有使用者（依建立時間降序）
-
-    輸出：
-    - 渲染模板 admin/users.html
-      context: users
-    """
-    pass
+    """使用者管理列表頁面。"""
+    users = User.get_all()
+    return render_template("admin/users.html", users=users)
 
 
 @admin_bp.route("/users/<int:id>/delete", methods=["POST"])
+@admin_required
 def delete_user(id):
-    """
-    強制刪除使用者帳號（CASCADE 刪除其所有食譜與收藏）。（需管理員）
-
-    POST /admin/users/<int:id>/delete
-    URL 參數: id — 使用者 id
-
-    處理邏輯（待實作）：
-    1. 確認管理員身份，否則 abort(403)
-    2. User.get_by_id(id)，若不存在 → abort(404)
-    3. 防止管理員刪除自己的帳號
-    4. User.delete(id) 刪除使用者
-
-    輸出：
-    - redirect(url_for("admin.list_users"))
-      附帶 flash("使用者已刪除")
-    """
-    pass
+    """強制刪除使用者帳號。"""
+    user = User.get_by_id(id)
+    if not user:
+        abort(404)
+        
+    if user["id"] == session["user_id"]:
+        flash("您無法刪除自己的帳號！", "danger")
+        return redirect(url_for("admin.list_users"))
+        
+    User.delete(id)
+    flash("使用者已刪除", "success")
+    return redirect(url_for("admin.list_users"))
 
 
 @admin_bp.route("/recipes", methods=["GET"])
+@admin_required
 def list_recipes():
-    """
-    全站食譜管理列表頁面（含私人食譜）。（需管理員）
-
-    GET /admin/recipes
-
-    處理邏輯（待實作）：
-    1. 確認管理員身份，否則 abort(403)
-    2. Recipe.get_all(public_only=False) 取得全站所有食譜
-
-    輸出：
-    - 渲染模板 admin/recipes.html
-      context: recipes
-    """
-    pass
+    """全站食譜管理列表頁面。"""
+    recipes = Recipe.get_all(public_only=False)
+    return render_template("admin/recipes.html", recipes=recipes)
 
 
 @admin_bp.route("/recipe/<int:id>/delete", methods=["POST"])
+@admin_required
 def delete_recipe(id):
-    """
-    管理員強制刪除指定食譜。（需管理員）
-
-    POST /admin/recipe/<int:id>/delete
-    URL 參數: id — 食譜 id
-
-    處理邏輯（待實作）：
-    1. 確認管理員身份，否則 abort(403)
-    2. Recipe.get_by_id(id)，若不存在 → abort(404)
-    3. Recipe.delete(id) 刪除食譜
-
-    輸出：
-    - redirect(url_for("admin.list_recipes"))
-      附帶 flash("食譜已刪除")
-    """
-    pass
+    """管理員強制刪除指定食譜。"""
+    recipe = Recipe.get_by_id(id)
+    if not recipe:
+        abort(404)
+        
+    Recipe.delete(id)
+    flash("食譜已強制刪除", "success")
+    return redirect(url_for("admin.list_recipes"))
